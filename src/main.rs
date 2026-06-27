@@ -1,3 +1,4 @@
+mod config;
 mod render;
 mod serve;
 
@@ -78,7 +79,11 @@ fn build(dir: &Path, out: Option<PathBuf>) -> Result<()> {
         anyhow::bail!("No .md files found in {}", dir.display());
     }
     let out = out.unwrap_or_else(|| dir.join("index.html"));
-    fs::write(&out, render::build_html(&pages, false))?;
+    let (theme, settings_json) = config::client_blob(dir);
+    fs::write(
+        &out,
+        render::build_html(&pages, false, &theme, &settings_json),
+    )?;
     println!("Built {} pages -> {}", pages.len(), out.display());
     Ok(())
 }

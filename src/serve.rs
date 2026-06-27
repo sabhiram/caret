@@ -1,4 +1,4 @@
-use crate::render;
+use crate::{config, render};
 use anyhow::{anyhow, Result};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
@@ -8,6 +8,30 @@ use tiny_http::{Header, Method, Request, Response, Server};
 struct SaveIn {
     slug: String,
     markdown: String,
+}
+
+#[derive(Deserialize)]
+#[serde(default)]
+struct SettingsIn {
+    auto_save: bool,
+    theme: String,
+    title: String,
+}
+
+impl Default for SettingsIn {
+    fn default() -> Self {
+        Self {
+            auto_save: false,
+            theme: "dark".into(),
+            title: String::new(),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct SecretIn {
+    name: String,
+    value: String,
 }
 
 pub fn serve(dir: &Path, port: u16) -> Result<()> {
@@ -24,6 +48,9 @@ pub fn serve(dir: &Path, port: u16) -> Result<()> {
                 }
             }
             (Method::Post, "/api/save") => handle_save(req, dir),
+            (Method::Get, "/api/settings") => respond_json(req, 200, &config::client_blob(dir).1),
+            (Method::Post, "/api/settings") => handle_settings(req, dir),
+            (Method::Post, "/api/secret") => handle_secret(req, dir),
             _ => {
                 let _ = req.respond(Response::from_string("not found").with_status_code(404));
             }
@@ -35,11 +62,71 @@ pub fn serve(dir: &Path, port: u16) -> Result<()> {
 fn serve_index(req: Request, dir: &Path) -> Result<()> {
     // Re-read on every load so the page reflects whatever is on disk right now.
     let pages = render::collect_pages(dir)?;
-    let html = render::build_html(&pages, true);
+    let (theme, settings_json) = config::client_blob(dir);
+    let html = render::build_html(&pages, true, &theme, &settings_json);
     let header =
         Header::from_bytes(&b"Content-Type"[..], &b"text/html; charset=utf-8"[..]).unwrap();
     req.respond(Response::from_string(html).with_header(header))?;
     Ok(())
+}
+
+fn read_body(req: &mut Request) -> Result<String> {
+    let mut body = String::new();
+    req.as_reader().read_to_string(&mut body)?;
+    Ok(body)
+}
+
+fn respond_json(req: Request, code: u16, json: &str) {
+    let header = Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap();
+    let _ = req.respond(
+        Response::from_string(json)
+            .with_status_code(code)
+            .with_header(header),
+    );
+}
+
+fn handle_settings(mut req: Request, dir: &Path) {
+    let result = (|| -> Result<()> {
+        let input: SettingsIn = serde_json::from_str(&read_body(&mut req)?)?;
+        let theme = if input.theme == "light" {
+            "light"
+        } else {
+            "dark"
+        };
+        config::save(
+            dir,
+            &config::Settings {
+                auto_save: input.auto_save,
+                theme: theme.to_string(),
+                title: input.title.trim().to_string(),
+            },
+        )
+    })();
+    match result {
+        Ok(()) => respond_json(req, 200, &config::client_blob(dir).1),
+        Err(e) => respond_json(req, 400, &err_json(&e)),
+    }
+}
+
+fn handle_secret(mut req: Request, dir: &Path) {
+    let result = (|| -> Result<()> {
+        let input: SecretIn = serde_json::from_str(&read_body(&mut req)?)?;
+        if input.name.trim().is_empty() {
+            anyhow::bail!("missing secret name");
+        }
+        config::set_secret(dir, input.name.trim(), input.value.trim())
+    })();
+    match result {
+        Ok(()) => respond_json(req, 200, &config::client_blob(dir).1),
+        Err(e) => respond_json(req, 400, &err_json(&e)),
+    }
+}
+
+fn err_json(e: &anyhow::Error) -> String {
+    format!(
+        "{{\"ok\":false,\"error\":{}}}",
+        serde_json::to_string(&e.to_string()).unwrap()
+    )
 }
 
 fn handle_save(mut req: Request, dir: &Path) {
