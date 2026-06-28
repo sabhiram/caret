@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(
-    name = "docd",
+    name = "caret",
     version,
     about = "Render a directory of markdown into one interactive HTML page."
 )]
@@ -20,7 +20,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// Scaffold a new docd project (non-destructive; skips existing files)
+    /// Scaffold a new caret project (non-destructive; skips existing files)
     Init {
         #[arg(default_value = ".")]
         dir: PathBuf,
@@ -51,17 +51,21 @@ fn main() -> Result<()> {
 }
 
 fn init(dir: &Path) -> Result<()> {
-    for (rel, content) in SCAFFOLD {
-        let p = dir.join(rel);
-        if p.exists() {
-            println!("skip (exists): {rel}");
-            continue;
-        }
-        if let Some(parent) = p.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(&p, content)?;
-        println!("create: {rel}");
+    fs::create_dir_all(dir)?;
+    let p = dir.join("index.md");
+    if p.exists() {
+        println!("skip (exists): index.md");
+    } else {
+        let note = "> **New here?** This page is just a guide. When you're ready, \
+            delete it (hover it in the sidebar and hit the trash icon) and start \
+            adding your own pages with **+ New page** at the bottom of the sidebar. \
+            Press **?** in the top bar to see this guide anytime.\n\n";
+        let content = format!(
+            "---\ntitle: Welcome\norder: 0\n---\n\n{note}{}",
+            render::HELP_BODY
+        );
+        fs::write(&p, render::normalize_markdown(&content))?;
+        println!("create: index.md");
     }
     let hint = dir.display().to_string();
     let hint = if hint == "." {
@@ -69,7 +73,7 @@ fn init(dir: &Path) -> Result<()> {
     } else {
         format!(" {hint}")
     };
-    println!("\nDone. Next: docd build{hint}");
+    println!("\nDone. Next: caret serve{hint}");
     Ok(())
 }
 
@@ -87,80 +91,3 @@ fn build(dir: &Path, out: Option<PathBuf>) -> Result<()> {
     println!("Built {} pages -> {}", pages.len(), out.display());
     Ok(())
 }
-
-const SCAFFOLD: &[(&str, &str)] = &[
-    (
-        "index.md",
-        r#"---
-title: Home
-order: 0
----
-
-# My Docs
-
-Welcome to your **docd** workspace — a directory of markdown files rendered
-into one interactive page. Edit the `.md` files, re-run `docd build`, refresh.
-
-## Start here
-
-- [Getting Started](guide/getting-started.md)
-- [Concepts](guide/concepts.md)
-- [Architecture](architecture.md)
-"#,
-    ),
-    (
-        "guide/getting-started.md",
-        r#"---
-title: Getting Started
-order: 1
----
-
-# Getting Started
-
-Your first steps in this workspace.
-
-1. Edit any `.md` file.
-2. Run `docd build`.
-3. Open `index.html`.
-
-Next: [Concepts](concepts.md) · [Home](../index.md)
-"#,
-    ),
-    (
-        "guide/concepts.md",
-        r#"---
-title: Concepts
-order: 2
----
-
-# Concepts
-
-The core ideas behind docd.
-
-- **Source of truth**: plain markdown in git.
-- **One page**: the whole tree renders into a single SPA.
-- **Links**: relative `.md` links become in-page navigation.
-
-Back to [Getting Started](getting-started.md).
-"#,
-    ),
-    (
-        "architecture.md",
-        r#"---
-title: Architecture
-order: 3
----
-
-# Architecture
-
-How the pieces fit together.
-
-## Overview
-
-The CLI renders every `.md` file into a single HTML page with client-side
-navigation. Relative links between files are rewritten automatically.
-
-Back to [Home](index.md).
-"#,
-    ),
-];

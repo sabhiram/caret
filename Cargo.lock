@@ -122,6 +122,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
+name = "caret"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "clap",
+ "comrak",
+ "regex",
+ "serde",
+ "serde_json",
+ "tiny_http",
+ "toml",
+ "walkdir",
+]
+
+[[package]]
 name = "caseless"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -306,21 +321,6 @@ name = "deunicode"
 version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abd57806937c9cc163efc8ea3910e00a62e2aeb0b8119f1793a978088f8f6b04"
-
-[[package]]
-name = "docd"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "clap",
- "comrak",
- "regex",
- "serde",
- "serde_json",
- "tiny_http",
- "toml",
- "walkdir",
-]
 
 [[package]]
 name = "entities"

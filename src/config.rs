@@ -1,8 +1,8 @@
 //! Per-repo settings + secrets.
 //!
 //! Three buckets, deliberately separated:
-//! - **Project settings** (`.docd/config.toml`) — committed; travels with the repo.
-//! - **Secrets** (`.docd/secrets.toml`) — gitignored; values never leave the server.
+//! - **Project settings** (`.caret/config.toml`) — committed; travels with the repo.
+//! - **Secrets** (`.caret/secrets.toml`) — gitignored; values never leave the server.
 //! - Personal/device overrides live in the browser (localStorage), not here.
 
 use anyhow::Result;
@@ -31,10 +31,10 @@ impl Default for Settings {
 }
 
 fn config_path(dir: &Path) -> PathBuf {
-    dir.join(".docd").join("config.toml")
+    dir.join(".caret").join("config.toml")
 }
 fn secrets_path(dir: &Path) -> PathBuf {
-    dir.join(".docd").join("secrets.toml")
+    dir.join(".caret").join("secrets.toml")
 }
 
 pub fn load(dir: &Path) -> Settings {
@@ -85,9 +85,9 @@ pub fn set_secret(dir: &Path, name: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
-/// Append `.docd/secrets.toml` to `.gitignore` if it isn't already ignored.
+/// Append `.caret/secrets.toml` to `.gitignore` if it isn't already ignored.
 fn ensure_gitignored(dir: &Path) -> Result<()> {
-    let needle = ".docd/secrets.toml";
+    let needle = ".caret/secrets.toml";
     let gi = dir.join(".gitignore");
     let mut content = std::fs::read_to_string(&gi).unwrap_or_default();
     if content.lines().any(|l| l.trim() == needle) {
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn roundtrip_and_secret_isolation() {
-        let tmp = std::env::temp_dir().join(format!("docd-cfg-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("caret-cfg-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(&tmp).unwrap();
 
@@ -168,7 +168,7 @@ mod tests {
         assert_eq!(secret_names(&tmp), vec!["anthropic".to_string()]);
         let gi = std::fs::read_to_string(tmp.join(".gitignore")).unwrap();
         assert!(
-            gi.contains(".docd/secrets.toml"),
+            gi.contains(".caret/secrets.toml"),
             "secrets must be gitignored"
         );
         let (_t, json) = client_blob(&tmp);

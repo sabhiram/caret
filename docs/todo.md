@@ -33,6 +33,13 @@
 - [ ] **Create / rename / delete pages** from the GUI (`serve` is edit-only today).
 - [ ] **gzip the serve response** — the inlined editor makes pages ~2.8MB; gzip cuts
   wire size ~4×. Do this if page load feels heavy.
+- [x] **Persist referenced images** — hover an external image → "Save to repo" →
+  downloaded into `img/`, markdown rewritten to the local path, served at `/img/*`.
+- [x] **Excalidraw diagrams** — diagrams are images (`![excalidraw:<id>](img/diagram-<id>.svg)`),
+  editable source in `diagrams/<id>.excalidraw`; editing never touches the `.md`. Excalidraw
+  bundle embedded + served at `/_excalidraw.js` (lazy, off the page). *Needs an in-browser eyeball.*
+- [ ] **Excalidraw follow-ups** — vendor Excalifont (restore hand-drawn look; currently system
+  fallback); at release, swap `include_str!` → fetch-from-release + cache (lean binary, "clean C").
 - [ ] **AI refactor** — run prompts against the raw markdown dir from the UI.
 - [ ] **External-change auto-reload** — watch the repo's `.md` files for edits made
   outside the UI (e.g. an AI agent or `git pull` rewriting files) and live-reload the

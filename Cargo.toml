@@ -1,11 +1,11 @@
 [package]
-name = "docd"
+name = "caret"
 version = "0.0.1"
 edition = "2021"
 description = "Render a directory of markdown into one interactive, git-friendly HTML page."
 
 [[bin]]
-name = "docd"
+name = "caret"
 path = "src/main.rs"
 
 [dependencies]
